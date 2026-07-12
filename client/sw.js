@@ -3,8 +3,9 @@ const ASSETS = [
   './index.html',
   './styles.css',
   './app.js',
+  './dcp-sdk.js',
   './manifest.json',
-  './libs/nacl-fast.min.js'
+  './libs/nacl.min.js'
 ];
 
 self.addEventListener('install', (e) => {

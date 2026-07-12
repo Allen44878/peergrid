@@ -17,7 +17,7 @@ import {
   unpadPKCS7,
   padFixedSize,
   unpadFixedSize
-} from '../sdk/dcp-sdk.js';
+} from './dcp-sdk.js';
 
 // Application State
 let myIdentity = null; // { username, network, mnemonic, keys: { identityKey, encryptionKey }, userId }
