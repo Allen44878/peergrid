@@ -12,8 +12,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # Server Config
-PORT = 8765
-HOST = "localhost"
+PORT = int(os.environ.get("PORT", 8765))
+HOST = "0.0.0.0"
 DB_FILE = "dcp_relay.db"
 
 # Static Relay seeds & keys
