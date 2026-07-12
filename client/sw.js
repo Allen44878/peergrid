@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dcp-chat-v1';
+const CACHE_NAME = 'dcp-chat-v3';
 const ASSETS = [
   './index.html',
   './styles.css',
