@@ -174,11 +174,11 @@ export class DCPIdentity {
 
 export class DCPCrypto {
   static deriveKeysFromSeed(seed) {
-    if (!window.nacl) {
+    if (!self.nacl) {
       throw new Error("nacl.js is not loaded! Cannot derive keys.");
     }
-    const edKeyPair = window.nacl.sign.keyPair.fromSeed(seed.slice(0, 32));
-    const xKeyPair = window.nacl.box.keyPair.fromSeed(seed.slice(32, 64));
+    const edKeyPair = self.nacl.sign.keyPair.fromSeed(seed.slice(0, 32));
+    const xKeyPair = self.nacl.box.keyPair.fromSeed(seed.slice(32, 64));
     return {
       identityKey: {
         publicKey: toHex(edKeyPair.publicKey),
@@ -192,15 +192,15 @@ export class DCPCrypto {
   }
 
   static sign(headerBytes, privateKeyHex) {
-    return window.nacl.sign.detached(headerBytes, fromHex(privateKeyHex));
+    return self.nacl.sign.detached(headerBytes, fromHex(privateKeyHex));
   }
 
   static verify(headerBytes, signatureBytes, publicKeyHex) {
-    return window.nacl.sign.detached.verify(headerBytes, signatureBytes, fromHex(publicKeyHex));
+    return self.nacl.sign.detached.verify(headerBytes, signatureBytes, fromHex(publicKeyHex));
   }
 
   static deriveX25519SharedSecret(ourPrivateHex, theirPublicHex) {
-    return window.nacl.scalarMult(fromHex(ourPrivateHex), fromHex(theirPublicHex));
+    return self.nacl.scalarMult(fromHex(ourPrivateHex), fromHex(theirPublicHex));
   }
 
   static async hkdf(sharedSecret, salt, info) {
@@ -317,7 +317,7 @@ export class DoubleRatchetSession {
       
       const entropy = new Uint8Array(32);
       window.crypto.getRandomValues(entropy);
-      const newKeyPair = window.nacl.box.keyPair.fromSeed(entropy);
+      const newKeyPair = self.nacl.box.keyPair.fromSeed(entropy);
       this.ourDHKey = {
         publicKey: toHex(newKeyPair.publicKey),
         privateKey: toHex(newKeyPair.secretKey)
@@ -572,7 +572,7 @@ export class DCPTransport {
       const nextHop = i === relayPathKeys.length - 1 ? finalRecipientId : relayPathKeys[i + 1];
       const entropy = new Uint8Array(32);
       window.crypto.getRandomValues(entropy);
-      const epKeyPair = window.nacl.box.keyPair.fromSeed(entropy);
+      const epKeyPair = self.nacl.box.keyPair.fromSeed(entropy);
       const sharedSecret = DCPCrypto.deriveX25519SharedSecret(toHex(epKeyPair.secretKey), relayKey);
       const info = new TextEncoder().encode("DCP_ONION_ROUTING_HOP");
       const aesKey = await DCPCrypto.hkdf(sharedSecret, null, info);
