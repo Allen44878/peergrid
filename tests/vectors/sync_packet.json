@@ -1,0 +1,9 @@
+{
+  "sync_class": "chats",
+  "data": {
+    "chats_count": 12,
+    "timestamp": 1783887379990
+  },
+  "aes_gcm_iv": "000000000000000000000000",
+  "ciphertext": "d2f84721e8604b53fa77b2e740183923a6129a551b166078ec68c050b6f9"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "dcp-monorepo",
+  "private": true,
+  "workspaces": [
+    "sdk",
+    "relay",
+    "client"
+  ],
+  "scripts": {
+    "dev:relay": "npm run dev --workspace=relay",
+    "dev:client": "npm run dev --workspace=client",
+    "build:sdk": "npm run build --workspace=sdk",
+    "build:client": "npm run build --workspace=client",
+    "test:sdk": "npm run test --workspace=sdk"
+  }
+}

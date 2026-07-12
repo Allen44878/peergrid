@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DCP SDK Browser Test Runner</title>
+</head>
+<body>
+  <h1>DCP SDK Test Runner</h1>
+  <p>Open the developer tools console (F12) to see test results.</p>
+  <div id="results" style="font-family: monospace; white-space: pre; background: #222; color: #fff; padding: 20px; border-radius: 8px;">Running tests...</div>
+
+  <script src="libs/nacl.min.js"></script>
+  <script type="module">
+    import { DCPIdentity, DCPCrypto, DoubleRatchetSession, DCPPacket, DCPTransport, toHex, fromHex } from '../sdk/dcp-sdk.js';
+
+    const resultsDiv = document.getElementById('results');
+    function log(message) {
+      console.log(message);
+      resultsDiv.innerText += "\n" + message;
+    }
+
+    async function runTests() {
+      resultsDiv.innerText = "Starting DCP Browser SDK Tests...";
+      try {
+        // 1. Identity Mnemonic test
+        log("[Test 1] Generating Mnemonic Recovery Phrase...");
+        const mnemonic = DCPIdentity.generateMnemonic();
+        log("Generated: " + mnemonic);
+        
+        log("Deriving seed...");
+        const seed = await DCPIdentity.deriveSeed(mnemonic);
+        log("Derived Seed Length: " + seed.length + " bytes");
+        
+        // 2. Key derivation test
+        log("[Test 2] Deriving Ed25519 and X25519 keys...");
+        const keys = DCPCrypto.deriveKeysFromSeed(seed);
+        log("Identity PubKey: " + keys.identityKey.publicKey);
+        log("Encryption PubKey: " + keys.encryptionKey.publicKey);
+        
+        // 3. Ed25519 signing/verifying test
+        log("[Test 3] Ed25519 Sign and Verify...");
+        const encoder = new TextEncoder();
+        const testHeader = encoder.encode("Test Signable Header Content");
+        const signature = DCPCrypto.sign(testHeader, keys.identityKey.privateKey);
+        const verified = DCPCrypto.verify(testHeader, signature, keys.identityKey.publicKey);
+        log("Signature Valid: " + verified);
+        if (!verified) throw new Error("Signature verification failed!");
+
+        // 4. Binary Packet pack/unpack test
+        log("[Test 4] Binary Packet Pack and Unpack...");
+        const payload = encoder.encode("HELLO_ONION_ROUTED_WORLD");
+        const packetBytes = await DCPPacket.pack({
+          protocolVersion: 1,
+          flags: 0x03,
+          cipherSuiteId: 0x02,
+          packetType: 0x01,
+          payloadBytes: payload,
+          senderPrivateKeyHex: keys.identityKey.privateKey
+        });
+        log("Serialized packet size: " + packetBytes.byteLength + " bytes");
+        
+        const unpacked = DCPPacket.unpack(packetBytes);
+        log("Unpacked Header Magic: " + unpacked.header.magic);
+        log("Unpacked Payload: " + new TextDecoder().decode(unpacked.payload));
+        if (new TextDecoder().decode(unpacked.payload) !== "HELLO_ONION_ROUTED_WORLD") {
+          throw new Error("Payload mismatch!");
+        }
+
+        // 5. Double Ratchet Test
+        log("[Test 5] Double Ratchet Session setup and messaging...");
+        // Setup Alice and Bob keypairs
+        const aliceSeed = await DCPIdentity.deriveSeed("alice mnemonic seed word phrase easy check list verify detail");
+        const bobSeed = await DCPIdentity.deriveSeed("bob mnemonic seed word phrase easy check list verify detail");
+        
+        const aliceKeys = DCPCrypto.deriveKeysFromSeed(aliceSeed);
+        const bobKeys = DCPCrypto.deriveKeysFromSeed(bobSeed);
+        
+        // Initialize Alice session and Bob session
+        const aliceSession = await DoubleRatchetSession.init(aliceKeys.encryptionKey, bobKeys.encryptionKey.publicKey, true);
+        const bobSession = await DoubleRatchetSession.init(bobKeys.encryptionKey, aliceKeys.encryptionKey.publicKey, false);
+        
+        // Alice encrypts
+        const msgText = "Super secret ratcheted message";
+        const encrypted = await aliceSession.encrypt(encoder.encode(msgText));
+        
+        // Bob decrypts
+        const decryptedBytes = await bobSession.decrypt(encrypted.ciphertext, encrypted.dhPub, encrypted.sequence);
+        const decryptedText = new TextDecoder().decode(decryptedBytes);
+        log("Decrypted Message: " + decryptedText);
+        
+        if (decryptedText !== msgText) {
+          throw new Error("Ratchet message decryption mismatch!");
+        }
+        
+        // 6. Packet Parsing Fuzz Testing
+        log("[Test 6] Binary Packet Parsing Fuzz Testing...");
+        const badInputs = [
+          new Uint8Array(0), // empty
+          new Uint8Array([0x44, 0x43, 0x50, 0x01]), // truncated magic bytes
+          new Uint8Array(10), // tiny random
+          new Uint8Array(200) // empty header with random bytes
+        ];
+        
+        let fuzzPassCount = 0;
+        for (const badInput of badInputs) {
+          try {
+            DCPPacket.unpack(badInput.buffer);
+            log(" -> Warning: parser accepted invalid input: " + toHex(badInput));
+          } catch (e) {
+            fuzzPassCount++;
+          }
+        }
+        log(` -> Parser safely rejected ${fuzzPassCount}/${badInputs.length} malformed inputs.`);
+        if (fuzzPassCount !== badInputs.length) {
+          throw new Error("Parser accepted malformed inputs!");
+        }
+
+        log("\n🏆 SUCCESS: All browser SDK cryptography and protocol unit tests passed!");
+      } catch (err) {
+        log("\n❌ TEST FAILED: " + err.message);
+        console.error(err);
+      }
+    }
+
+    runTests();
+  </script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeerGrid - Secure P2P Onion-Routed Chat</title>
+  <!-- Google Fonts for premium modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Background Glowing Blobs for Premium Visual Depth -->
+  <div class="glow-bg">
+    <div class="blob blob-purple"></div>
+    <div class="blob blob-blue"></div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- Onboarding Screen (Mnemonic Creation/Import) -->
+    <div id="onboarding-card" class="glass-card onboarding-card active">
+      <div class="brand">
+        <span class="logo-icon">📡</span>
+        <h1 class="gradient-text">PeerGrid</h1>
+        <p class="subtitle">Decentralized. Serverless. Onion-Routed. Private.</p>
+      </div>
+
+      <div class="onboarding-tabs">
+        <button id="tab-create" class="tab-btn active">Generate New ID</button>
+        <button id="tab-import" class="tab-btn">Restore recovery phrase</button>
+      </div>
+
+      <div class="tab-content create-content active">
+        <p class="tab-description">Create a new cryptographic identity. Write down this 12-word mnemonic. If lost, your account is gone forever.</p>
+        <div class="mnemonic-display" id="generated-mnemonic">generating...</div>
+        
+        <div class="input-group">
+          <label for="create-username">Choose username</label>
+          <input type="text" id="create-username" placeholder="e.g. dipak" maxlength="15">
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <label for="create-pin">Create Security PIN (4-6 digits)</label>
+          <input type="password" id="create-pin" placeholder="••••" maxlength="6" pattern="[0-9]*" inputmode="numeric">
+        </div>
+        
+        <button id="btn-create-identity" class="primary-btn" style="margin-top: 15px;">Initialize Identity</button>
+      </div>
+
+      <div class="tab-content import-content">
+        <p class="tab-description">Enter your 12-word recovery phrase to restore your identity.</p>
+        <textarea id="import-mnemonic" placeholder="apple river galaxy ..."></textarea>
+        
+        <div class="input-group">
+          <label for="import-username">Choose username</label>
+          <input type="text" id="import-username" placeholder="e.g. dipak" maxlength="15">
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <label for="import-pin">Create Security PIN (4-6 digits)</label>
+          <input type="password" id="import-pin" placeholder="••••" maxlength="6" pattern="[0-9]*" inputmode="numeric">
+        </div>
+
+        <button id="btn-import-identity" class="primary-btn" style="margin-top: 15px;">Restore Identity</button>
+      </div>
+    </div>
+
+    <!-- Unlock Wallet Screen -->
+    <div id="unlock-card" class="glass-card onboarding-card" style="display: none;">
+      <div class="brand">
+        <span class="logo-icon">🔒</span>
+        <h1 class="gradient-text">Unlock PeerGrid Wallet</h1>
+        <p class="subtitle">Enter your Security PIN to decrypt your identity vault.</p>
+      </div>
+      
+      <div class="input-group" style="margin-top: 20px;">
+        <label for="unlock-pin">Security PIN</label>
+        <input type="password" id="unlock-pin" placeholder="••••" maxlength="6" pattern="[0-9]*" inputmode="numeric" style="text-align: center; font-size: 24px; letter-spacing: 10px; outline: none;">
+      </div>
+      
+      <button id="btn-unlock-identity" class="primary-btn" style="margin-top: 20px;">Unlock & Enter</button>
+      <button id="btn-reset-wallet" class="secondary-btn" style="margin-top: 10px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;">Reset Wallet (Deletes Cache)</button>
+    </div>
+
+    <!-- Main Workspace Dashboard (Hidden until onboarding completes) -->
+    <div id="main-dashboard" class="dashboard-grid">
+      
+      <!-- Top header bar -->
+      <header class="main-header glass-card">
+        <div class="header-logo">
+          <span class="header-icon">📡</span>
+          <h2>PeerGrid <span class="badge">v1.0-Core</span></h2>
+        </div>
+        <div class="user-identity-card" id="user-badge">
+          <!-- Populated by app.js -->
+        </div>
+      </header>
+
+      <!-- Left sidebar: Contacts & Relays -->
+      <aside class="sidebar glass-card">
+        <div class="sidebar-section">
+          <h3>Your Contacts</h3>
+          <div id="contacts-list" class="contacts-list">
+            <!-- Populated dynamically -->
+            <p class="empty-state">No contacts added yet</p>
+          </div>
+          
+          <div class="add-contact-box" style="gap: 6px;">
+            <input type="text" id="input-contact-id" placeholder="Enter User ID (@username.network.chksum)">
+            <button id="btn-add-contact" class="secondary-btn">Add Friend</button>
+            <button id="btn-create-group" class="secondary-btn" style="margin-top: 4px;">Create Secure Group</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Privacy & Routing Settings</h3>
+          <div class="input-group-compact">
+            <label for="select-privacy-level">Privacy level</label>
+            <select id="select-privacy-level">
+              <option value="low">Low (No Padding/Delays)</option>
+              <option value="medium" selected>Medium (256B Padding + Jitter)</option>
+              <option value="max">Maximum (2KB Padding + Dummies)</option>
+            </select>
+          </div>
+          <div class="input-group-compact" style="margin-top: 10px;">
+            <label for="select-reputation-profile">Reputation profile</label>
+            <select id="select-reputation-profile">
+              <option value="balanced" selected>Balanced Profile</option>
+              <option value="latency">Latency Optimized</option>
+              <option value="reliability">Reliability Optimized</option>
+              <option value="privacy">Privacy Optimized</option>
+            </select>
+          </div>
+          <div class="input-group-compact" style="margin-top: 10px;">
+            <label for="select-dummy-budget">Dummy bandwidth limit</label>
+            <select id="select-dummy-budget">
+              <option value="10">Medium (10 KB/min)</option>
+              <option value="500" selected>High (500 KB/min)</option>
+              <option value="unlimited">Unlimited (Constant Cover)</option>
+            </select>
+          </div>
+          <div class="input-group-compact" style="margin-top: 10px;">
+            <label for="select-presence-visibility">Presence visibility</label>
+            <select id="select-presence-visibility">
+              <option value="contacts" selected>Contacts Only</option>
+              <option value="everybody">Everybody</option>
+              <option value="invisible">Invisible</option>
+              <option value="nobody">Nobody</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Linked Devices</h3>
+          <div class="relay-list" id="linked-devices-list">
+            <div class="relay-item" style="padding: 8px; border: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.01);">
+              <span class="status-dot online"></span>
+              <div class="relay-details">
+                <p class="relay-name" style="font-size: 11px; font-weight: 600;">Primary Device (Master)</p>
+                <p class="relay-stat" style="font-size: 9px; color: var(--text-secondary); margin-top: 1px;">Active • Trust: Master • Full Perms</p>
+              </div>
+            </div>
+          </div>
+          <div class="add-contact-box" style="margin-top: 10px; gap: 6px;">
+            <select id="select-link-device-type" style="background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; padding: 6px; color: var(--text-primary); font-size: 11px; outline: none; cursor: pointer;">
+              <option value="phone">Phone client (Read/Write)</option>
+              <option value="desktop">Desktop client (Read/Write)</option>
+              <option value="tablet">Tablet client (Read/Write)</option>
+              <option value="temporary">Temporary client (Read-only)</option>
+            </select>
+            <button id="btn-link-device" class="secondary-btn" style="padding: 6px; font-size: 11px;">Link New Device</button>
+            <button id="btn-trigger-sync" class="secondary-btn" style="padding: 6px; font-size: 11px; margin-top: 4px; display: none;">Trigger Sync (Chats)</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Relay Network Nodes</h3>
+          <div class="relay-list" id="relays-status">
+            <!-- Simulated Relay Node Statuses -->
+            <div class="relay-item" id="relay-item-a">
+              <span class="status-dot online"></span>
+              <div class="relay-details">
+                <p class="relay-name">Relay Alpha (Entrance)</p>
+                <p class="relay-stat" id="relay-stat-a">Active • Score: 98 • PoW: 8</p>
+              </div>
+            </div>
+            <div class="relay-item" id="relay-item-b">
+              <span class="status-dot online"></span>
+              <div class="relay-details">
+                <p class="relay-name">Relay Beta (Middle)</p>
+                <p class="relay-stat" id="relay-stat-b">Active • Score: 95 • PoW: 8</p>
+              </div>
+            </div>
+            <div class="relay-item" id="relay-item-c">
+              <span class="status-dot online"></span>
+              <div class="relay-details">
+                <p class="relay-name">Relay Gamma (Exit)</p>
+                <p class="relay-stat" id="relay-stat-c">Active • Score: 99 • PoW: 8</p>
+              </div>
+            </div>
+          </div>
+          <div class="dht-lookup-box">
+            <span class="dht-badge">Blinded DHT lookup</span>
+            <p class="dht-info">Hour key rotation active (jittered)</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center chat room -->
+      <main class="chat-area glass-card">
+        <div class="chat-header" id="active-chat-header">
+          <p class="empty-chat-header-text">Select a contact to begin secure communication</p>
+        </div>
+        
+        <div class="messages-container" id="chat-messages">
+          <div class="empty-chat-state">
+            <div class="shield-icon">🛡️</div>
+            <h3>End-to-End Encrypted Session</h3>
+            <p>Messages are Double Ratchet encrypted and onion-routed. Relays cannot read them.</p>
+          </div>
+        </div>
+
+        <!-- File Transfer Progress Panel -->
+        <div class="file-transfer-panel glass-card" id="file-transfer-progress" style="display: none; margin: 10px; padding: 12px; border: 1px dashed var(--accent-blue); background: rgba(59, 130, 246, 0.03);">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+            <span id="file-transfer-name" style="font-weight: 600;">file.zip (0%)</span>
+            <span id="file-transfer-state" style="color: var(--accent-blue); text-transform: uppercase; font-weight: 600; font-size: 10px;">Uploading</span>
+          </div>
+          <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+            <div id="file-transfer-bar" style="width: 0%; height: 100%; background: var(--accent-blue); transition: width 0.3s ease;"></div>
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="btn-file-pause" class="tiny-btn" style="padding: 2px 6px; font-size: 10px;">Pause</button>
+            <button id="btn-file-cancel" class="tiny-btn" style="padding: 2px 6px; font-size: 10px;">Cancel</button>
+          </div>
+        </div>
+
+        <div class="chat-input-area" id="chat-input-row" style="display: none;">
+          <button id="btn-attach-file" class="secondary-btn" style="padding: 10px 14px; font-size: 14px;" disabled>📎</button>
+          <input type="file" id="input-file-select" style="display: none;">
+          <input type="text" id="input-message" placeholder="Type an onion-routed message..." disabled>
+          <button id="btn-send-message" class="send-btn" disabled>Send</button>
+        </div>
+      </main>
+
+      <!-- Bottom Panel: Onion Routing Animator Map -->
+      <section class="onion-panel glass-card">
+        <h3>Onion Routing Topology Map</h3>
+        <div class="onion-board-container">
+          <svg class="onion-svg" id="onion-map" viewBox="0 0 1000 150">
+            <!-- Hops line -->
+            <path d="M 50 75 Q 250 25, 450 75 T 850 75" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" stroke-dasharray="10 5" id="route-path" />
+            
+            <!-- Nodes -->
+            <g class="node-group" id="node-sender" transform="translate(50, 75)">
+              <circle r="22" class="node-circle sender-node" />
+              <text y="5" text-anchor="middle" class="node-label">You</text>
+            </g>
+            <g class="node-group" id="node-relay-1" transform="translate(280, 75)">
+              <circle r="20" class="node-circle relay-node" id="circle-relay-1" />
+              <text y="5" text-anchor="middle" class="node-label">Relay A</text>
+            </g>
+            <g class="node-group" id="node-relay-2" transform="translate(510, 75)">
+              <circle r="20" class="node-circle relay-node" id="circle-relay-2" />
+              <text y="5" text-anchor="middle" class="node-label">Relay B</text>
+            </g>
+            <g class="node-group" id="node-relay-3" transform="translate(740, 75)">
+              <circle r="20" class="node-circle relay-node" id="circle-relay-3" />
+              <text y="5" text-anchor="middle" class="node-label">Relay C</text>
+            </g>
+            <g class="node-group" id="node-recipient" transform="translate(950, 75)">
+              <circle r="22" class="node-circle recipient-node" />
+              <text y="5" text-anchor="middle" class="node-label" id="routing-label-recipient">Friend</text>
+            </g>
+
+            <!-- Floating Packet Dot (Hidden by default) -->
+            <circle r="8" fill="#a855f7" id="packet-dot" style="display: none; filter: drop-shadow(0 0 8px #a855f7);" />
+          </svg>
+          
+          <div class="peeling-steps-log" id="peeling-log">
+            <span class="idle-peel-text">Send a message to see the onion packet layers get decrypted and peeled at each routing hop.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Protocol & Cryptographic Console -->
+      <section class="console-panel glass-card">
+        <div class="console-header">
+          <h3>Binary Protocol Console</h3>
+          <div class="mailbox-badge" id="mailbox-summary">Mailbox: 0 Pnd • 0 Del</div>
+          <button id="btn-clear-console" class="tiny-btn">Clear</button>
+        </div>
+        <div class="console-log" id="console-output">
+          <div class="console-line system">[System initialized: Secure keys derived via Web Crypto PBKDF2]</div>
+          <div class="console-line system">[Waiting for active E2E sessions]</div>
+        </div>
+        
+        <!-- Real-Time Metrics Board -->
+        <div class="metrics-board">
+          <h4>Real-Time Network Metrics</h4>
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <span class="m-val" id="metric-sent">0</span>
+              <span class="m-lbl">Sent (DMs)</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-val" id="metric-recv">0</span>
+              <span class="m-lbl">Received</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-val" id="metric-latency">0ms</span>
+              <span class="m-lbl">Avg Latency</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-val" id="metric-switches">0</span>
+              <span class="m-lbl">Relay Switches</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-val" id="metric-dummy">0</span>
+              <span class="m-lbl">Dummies Sent</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-val" id="metric-pow">0</span>
+              <span class="m-lbl">PoW Solves</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-val" id="metric-bandwidth">0.0 KB</span>
+              <span class="m-lbl">Bandwidth</span>
+            </div>
+            <div class="metric-box">
+              <span class="m-val" id="metric-overhead">0%</span>
+              <span class="m-lbl">Padding Overhead</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- About & Diagnostics Panel -->
+        <div class="metrics-board" style="margin-top: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">About & Diagnostics (DCP Alpha)</h4>
+            <span class="logo-icon" style="font-size: 12px;">📡</span>
+          </div>
+          <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 11px;">
+            <div class="metric-box" style="padding: 6px; border: 1px solid rgba(255,255,255,0.02); background: rgba(255,255,255,0.01);">
+              <span class="m-val" style="font-size: 11px; color: var(--accent-blue);">v1.0.0</span>
+              <span class="m-lbl" style="font-size: 8px; margin-top: 2px;">Protocol version</span>
+            </div>
+            <div class="metric-box" style="padding: 6px; border: 1px solid rgba(255,255,255,0.02); background: rgba(255,255,255,0.01);">
+              <span class="m-val" style="font-size: 11px; color: var(--accent-blue);">v0.1.0-alpha</span>
+              <span class="m-lbl" style="font-size: 8px; margin-top: 2px;">Platform Build</span>
+            </div>
+            <div class="metric-box" style="padding: 6px; border: 1px solid rgba(255,255,255,0.02); background: rgba(255,255,255,0.01);">
+              <span class="m-val" style="font-size: 11px; color: var(--accent-blue);">Maximum</span>
+              <span class="m-lbl" style="font-size: 8px; margin-top: 2px;">Privacy Layer</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button id="btn-export-debug" class="tiny-btn" style="flex: 1; padding: 6px; font-size: 10px; cursor: pointer;">Export Debug Report 📊</button>
+            <button id="btn-feedback" class="tiny-btn" style="flex: 1; padding: 6px; font-size: 10px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: var(--accent-blue); cursor: pointer;">Send Feedback ✍️</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Modal Overlay Backdrop -->
+  <div id="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; backdrop-filter: blur(4px);"></div>
+
+  <!-- First-Run Tutorial Modal -->
+  <div id="tutorial-modal" class="glass-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; width: 90%; max-width: 440px; padding: 24px; border: 1px solid var(--accent-blue); background: rgba(13, 14, 18, 0.95); box-shadow: 0 20px 40px rgba(0,0,0,0.8);">
+    <div style="text-align: center; margin-bottom: 15px;">
+      <span class="logo-icon" style="font-size: 36px;">🚀</span>
+      <h2 class="gradient-text" style="margin-top: 8px; font-size: 18px; font-weight: 800;">Welcome to PeerGrid Alpha</h2>
+      <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">A 60-second guide to decentralized messaging.</p>
+    </div>
+    <div id="tutorial-step-content" style="font-size: 12px; line-height: 1.6; min-height: 110px; color: var(--text-primary); margin-bottom: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+      <!-- Steps populating dynamically -->
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
+      <button id="btn-tutorial-prev" class="tiny-btn" style="visibility: hidden; font-size: 10px; padding: 4px 10px;">Back</button>
+      <span id="tutorial-step-indicator" style="font-size: 10px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">1 / 4</span>
+      <button id="btn-tutorial-next" class="primary-btn" style="padding: 6px 14px; font-size: 10px; width: auto; font-weight: 600;">Next</button>
+    </div>
+  </div>
+
+  <!-- Crash Recovery Banner -->
+  <div id="crash-banner" class="glass-card" style="display: none; position: fixed; top: 15px; left: 50%; transform: translateX(-50%); z-index: 10001; width: 90%; max-width: 400px; padding: 12px 16px; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+    <div style="font-size: 11px; color: var(--text-primary);">
+      <p style="margin: 0; font-weight: 600; color: #ef4444; font-size: 12px;">⚠️ Unclean Shutdown Detected</p>
+      <p style="margin: 3px 0 0 0; color: var(--text-secondary); font-size: 10px; line-height: 1.4;">PeerGrid did not close properly last session. Reset state if it fails to unlock.</p>
+    </div>
+    <div style="display: flex; gap: 6px;">
+      <button id="btn-crash-dismiss" class="tiny-btn" style="padding: 4px 8px; font-size: 9px; cursor: pointer;">Dismiss</button>
+      <button id="btn-crash-reset" class="tiny-btn" style="padding: 4px 8px; font-size: 9px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444; cursor: pointer;">Reset</button>
+    </div>
+  </div>
+
+  <script src="libs/nacl.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

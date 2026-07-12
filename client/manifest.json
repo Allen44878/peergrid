@@ -1,0 +1,17 @@
+{
+  "name": "PeerGrid Secure Chat",
+  "short_name": "PeerGrid",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d0e12",
+  "theme_color": "#3b82f6",
+  "description": "Secure, E2EE, onion-routed decentralized communication client.",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/nolan/512/security-shield.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
