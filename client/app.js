@@ -130,7 +130,16 @@ function setupOnboarding() {
     const pin = document.getElementById('create-pin').value.trim();
     if (!username) return alert("Please choose a username");
     if (pin.length < 4) return alert("Security PIN or Password must be at least 4 characters long.");
-    await initializeIdentity(username, mnemonic, pin);
+    try {
+      document.getElementById('btn-create-identity').disabled = true;
+      document.getElementById('btn-create-identity').innerText = 'Initializing...';
+      await initializeIdentity(username, mnemonic, pin);
+    } catch (err) {
+      console.error('[InitializeIdentity Error]', err);
+      alert('Failed to initialize identity: ' + err.message);
+      document.getElementById('btn-create-identity').disabled = false;
+      document.getElementById('btn-create-identity').innerText = 'Initialize Identity';
+    }
   });
 
   btnImport.addEventListener('click', async () => {
