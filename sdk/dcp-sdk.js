@@ -178,7 +178,7 @@ export class DCPCrypto {
       throw new Error("nacl.js is not loaded! Cannot derive keys.");
     }
     const edKeyPair = self.nacl.sign.keyPair.fromSeed(seed.slice(0, 32));
-    const xKeyPair = self.nacl.box.keyPair.fromSeed(seed.slice(32, 64));
+    const xKeyPair = self.nacl.box.keyPair.fromSecretKey(seed.slice(32, 64));
     return {
       identityKey: {
         publicKey: toHex(edKeyPair.publicKey),
