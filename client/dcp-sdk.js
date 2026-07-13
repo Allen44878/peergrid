@@ -206,7 +206,7 @@ export class DCPCrypto {
   static async hkdf(sharedSecret, salt, info) {
     const saltKey = await crypto.subtle.importKey(
       "raw",
-      salt || new Uint8Array(32),
+      sharedSecret,
       "HKDF",
       false,
       ["deriveKey"]
