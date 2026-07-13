@@ -1677,15 +1677,291 @@ window.switchMobileTab = switchMobileTab;
 window.showUnreadTabBadge = showUnreadTabBadge;
 
 // Auto-switch to Chat tab when a contact is selected (mobile)
-document.addEventListener('DOMContentLoaded', () => {
-  const contactsList = document.getElementById('contacts-list');
-  if (contactsList) {
-    contactsList.addEventListener('click', (e) => {
-      const item = e.target.closest('.contact-item');
-      if (item && window.innerWidth <= 768) {
-        switchMobileTab('chat');
-      }
-    });
+
+// ═══════════════════════════════════════════════════════════════
+//  MOBILE APP CONTROLLER — WhatsApp-style
+// ═══════════════════════════════════════════════════════════════
+
+const AVATAR_COLORS = ['mob-avatar-0','mob-avatar-1','mob-avatar-2','mob-avatar-3','mob-avatar-4','mob-avatar-5','mob-avatar-6','mob-avatar-7'];
+let mobActiveContactId = null;
+
+function isMobile() { return window.innerWidth <= 768; }
+
+// ── Show/hide mobile vs desktop ──────────────────────────────
+function applyLayout() {
+  const mobileApp = document.getElementById('mobile-app');
+  const dashboard = document.getElementById('main-dashboard');
+  if (!mobileApp) return;
+  if (isMobile()) {
+    mobileApp.style.display = 'flex';
+    if (dashboard) dashboard.style.setProperty('display','none','important');
+  } else {
+    mobileApp.style.display = 'none';
+    if (dashboard && dashboard.classList.contains('active')) {
+      dashboard.style.removeProperty('display');
+    }
   }
+}
+
+window.addEventListener('resize', applyLayout);
+document.addEventListener('DOMContentLoaded', () => {
+  applyLayout();
+  setupMobileApp();
 });
+
+// ── Render chat list ──────────────────────────────────────────
+function mobRenderChatList() {
+  const list = document.getElementById('mob-chat-list');
+  if (!list) return;
+  const ids = Object.keys(contacts);
+  if (ids.length === 0) {
+    list.innerHTML = `<div class="mob-empty-state">
+      <div style="font-size:48px;margin-bottom:12px;">🔒</div>
+      <p style="font-weight:600;font-size:15px;margin-bottom:6px;">No chats yet</p>
+      <p style="color:var(--mob-text-secondary);font-size:13px;">Tap + to add your first contact</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = '';
+  ids.forEach((userId, i) => {
+    const c = contacts[userId];
+    const initial = (c.username || '?')[0].toUpperCase();
+    const colorClass = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const preview = c.lastMessage || '🔒 Encrypted session active';
+    const time = c.lastTime || '';
+    const unread = c.unread || 0;
+
+    const item = document.createElement('div');
+    item.className = 'mob-chat-item';
+    item.dataset.userId = userId;
+    item.innerHTML = `
+      <div class="mob-chat-item-avatar ${colorClass}">${initial}</div>
+      <div class="mob-chat-item-body">
+        <div class="mob-chat-item-top">
+          <span class="mob-chat-item-name">${c.username}</span>
+          <span class="mob-chat-item-time ${unread > 0 ? 'unread' : ''}">${time}</span>
+        </div>
+        <div class="mob-chat-item-bottom">
+          <span class="mob-chat-item-preview">${preview}</span>
+          ${unread > 0 ? `<span class="mob-unread-badge">${unread}</span>` : ''}
+        </div>
+      </div>`;
+    item.addEventListener('click', () => mobOpenChat(userId));
+    list.appendChild(item);
+  });
+}
+
+// ── Open individual chat ──────────────────────────────────────
+function mobOpenChat(userId) {
+  mobActiveContactId = userId;
+  const c = contacts[userId];
+  if (!c) return;
+
+  // Clear unread
+  if (c.unread) { c.unread = 0; mobRenderChatList(); }
+
+  // Set header info
+  const initial = (c.username || '?')[0].toUpperCase();
+  const i = Object.keys(contacts).indexOf(userId);
+  const colorClass = AVATAR_COLORS[i % AVATAR_COLORS.length];
+  const avatar = document.getElementById('mob-chat-avatar');
+  avatar.textContent = initial;
+  avatar.className = `mob-chat-avatar ${colorClass}`;
+  document.getElementById('mob-chat-name').textContent = c.username;
+  document.getElementById('mob-chat-status').textContent = '🔒 End-to-end encrypted';
+
+  // Render messages
+  mobRenderMessages(userId);
+
+  // Navigate to chat screen
+  document.getElementById('mob-screen-chats').style.transform = 'translateX(-100%)';
+  document.getElementById('mob-screen-chat').classList.remove('mob-screen-hidden');
+
+  // Also select on desktop
+  const desktopItem = document.querySelector(`.contact-item[data-user-id="${userId}"]`);
+  if (desktopItem) desktopItem.click();
+}
+
+// ── Render messages in mobile chat ───────────────────────────
+function mobRenderMessages(userId) {
+  const container = document.getElementById('mob-messages');
+  if (!container) return;
+  container.innerHTML = `<div class="mob-encrypted-notice">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+    Messages are end-to-end encrypted. No one outside can read them.
+  </div>`;
+
+  const msgs = (window.messageHistory && window.messageHistory[userId]) || [];
+  msgs.forEach(m => {
+    mobAddBubble(m.text, m.outgoing, m.time);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+// ── Add a single bubble ───────────────────────────────────────
+function mobAddBubble(text, outgoing, timeStr) {
+  const container = document.getElementById('mob-messages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = `mob-bubble ${outgoing ? 'mob-bubble-out' : 'mob-bubble-in'}`;
+  div.innerHTML = `${text}<div class="mob-bubble-time">${timeStr || ''}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ── Go back to chats list ─────────────────────────────────────
+function mobGoBack() {
+  document.getElementById('mob-screen-chats').style.transform = '';
+  document.getElementById('mob-screen-chat').classList.add('mob-screen-hidden');
+  mobActiveContactId = null;
+}
+
+// ── Bottom sheet helpers ──────────────────────────────────────
+function mobShowSheet(name) {
+  document.getElementById('mob-sheet-backdrop').classList.add('open');
+  document.getElementById(`mob-${name}-sheet`).classList.add('open');
+
+  // Mirror console to network sheet
+  if (name === 'network') {
+    const mirror = document.getElementById('mob-console-mirror');
+    const consoleOutput = document.getElementById('console-output');
+    if (mirror && consoleOutput) {
+      mirror.innerHTML = consoleOutput.innerHTML;
+      mirror.scrollTop = mirror.scrollHeight;
+    }
+  }
+
+  // Mirror my ID to settings sheet
+  if (name === 'settings' && myIdentity) {
+    const el = document.getElementById('mob-my-id');
+    if (el) el.textContent = myIdentity.userId || '—';
+  }
+}
+
+function mobCloseSheets() {
+  document.getElementById('mob-sheet-backdrop').classList.remove('open');
+  document.querySelectorAll('.mob-bottom-sheet').forEach(s => s.classList.remove('open'));
+}
+
+// ── Setup all mobile event listeners ─────────────────────────
+function setupMobileApp() {
+  // Back button
+  const backBtn = document.getElementById('mob-back-btn');
+  if (backBtn) backBtn.addEventListener('click', mobGoBack);
+
+  // Header new chat button
+  const addOpen = document.getElementById('mob-btn-add-contact-open');
+  if (addOpen) addOpen.addEventListener('click', () => mobShowSheet('add-contact'));
+
+  // Add contact confirm
+  const addConfirm = document.getElementById('mob-btn-add-contact-confirm');
+  if (addConfirm) addConfirm.addEventListener('click', () => {
+    const input = document.getElementById('mob-contact-id-input');
+    const id = input ? input.value.trim() : '';
+    if (!id) return;
+    // Reuse desktop logic
+    const desktopInput = document.getElementById('input-contact-id');
+    const desktopBtn = document.getElementById('btn-add-contact');
+    if (desktopInput && desktopBtn) {
+      desktopInput.value = id;
+      desktopBtn.click();
+      input.value = '';
+      mobCloseSheets();
+      setTimeout(mobRenderChatList, 500);
+    }
+  });
+
+  // Send message
+  const sendBtn = document.getElementById('mob-send-btn');
+  const msgInput = document.getElementById('mob-msg-input');
+  if (sendBtn && msgInput) {
+    const doSend = () => {
+      const text = msgInput.value.trim();
+      if (!text || !mobActiveContactId) return;
+      // Mirror to desktop and trigger send
+      const desktopInput = document.getElementById('input-message');
+      const desktopSend = document.getElementById('btn-send-message');
+      if (desktopInput && desktopSend) {
+        desktopInput.value = text;
+        desktopSend.click();
+        msgInput.value = '';
+        const t = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        mobAddBubble(text, true, t);
+        // Update preview in list
+        if (contacts[mobActiveContactId]) {
+          contacts[mobActiveContactId].lastMessage = text;
+          contacts[mobActiveContactId].lastTime = t;
+        }
+      }
+    };
+    sendBtn.addEventListener('click', doSend);
+    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSend(); });
+  }
+
+  // Copy ID
+  const copyBtn = document.getElementById('mob-btn-copy-id');
+  if (copyBtn) copyBtn.addEventListener('click', () => {
+    if (myIdentity && myIdentity.userId) {
+      navigator.clipboard.writeText(myIdentity.userId);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+    }
+  });
+
+  // Reset wallet
+  const resetBtn = document.getElementById('mob-btn-reset');
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    const desktopReset = document.getElementById('btn-reset-wallet');
+    if (desktopReset) desktopReset.click();
+  });
+
+  // Search filter
+  const searchInput = document.getElementById('mob-search-input');
+  if (searchInput) searchInput.addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('.mob-chat-item').forEach(item => {
+      const name = item.querySelector('.mob-chat-item-name')?.textContent.toLowerCase() || '';
+      item.style.display = name.includes(q) ? '' : 'none';
+    });
+  });
+
+  // Filter pills
+  document.querySelectorAll('.mob-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.mob-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+}
+
+// ── Patch: notify mobile when a new contact is added ─────────
+const _origRenderContacts = window.renderContactsList;
+// We'll monkey-patch after contacts are updated
+function mobSyncAfterContactChange() {
+  if (isMobile()) mobRenderChatList();
+}
+window.mobSyncAfterContactChange = mobSyncAfterContactChange;
+
+// ── Patch: notify mobile when new message arrives ─────────────
+function mobOnNewMessage(userId, text, outgoing) {
+  if (!isMobile()) return;
+  const t = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  if (contacts[userId]) {
+    contacts[userId].lastMessage = outgoing ? text : text;
+    contacts[userId].lastTime = t;
+    if (!outgoing && userId !== mobActiveContactId) {
+      contacts[userId].unread = (contacts[userId].unread || 0) + 1;
+    }
+  }
+  if (userId === mobActiveContactId && !outgoing) {
+    mobAddBubble(text, false, t);
+  }
+  mobRenderChatList();
+}
+window.mobOnNewMessage = mobOnNewMessage;
+
+// Expose globals
+window.mobShowSheet = mobShowSheet;
+window.mobCloseSheets = mobCloseSheets;
+window.mobRenderChatList = mobRenderChatList;
 
