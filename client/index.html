@@ -295,7 +295,7 @@
         </div>
       </section>
 
-      </div><!-- end center-column -->
+    </div><!-- end center-column -->
 
       <!-- Right Panel: Protocol & Cryptographic Console -->
       <section class="console-panel glass-card">
@@ -374,6 +374,25 @@
           </div>
         </div>
       </section>
+
+      <!-- Mobile Bottom Tab Bar (hidden on desktop) -->
+      <nav class="mobile-tab-bar" id="mobile-tab-bar">
+        <button class="tab-btn" id="tab-btn-contacts" onclick="switchMobileTab('contacts')">
+          <span class="tab-icon">👥</span>
+          <span class="tab-label">Contacts</span>
+          <span class="tab-badge" id="tab-badge-contacts"></span>
+        </button>
+        <button class="tab-btn active" id="tab-btn-chat" onclick="switchMobileTab('chat')">
+          <span class="tab-icon">💬</span>
+          <span class="tab-label">Chat</span>
+          <span class="tab-badge" id="tab-badge-chat"></span>
+        </button>
+        <button class="tab-btn" id="tab-btn-console" onclick="switchMobileTab('console')">
+          <span class="tab-icon">📡</span>
+          <span class="tab-label">Console</span>
+          <span class="tab-badge" id="tab-badge-console"></span>
+        </button>
+      </nav>
 
     </div>
   </div>

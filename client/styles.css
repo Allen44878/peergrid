@@ -961,18 +961,273 @@ textarea {
   stroke: var(--accent-green) !important;
 }
 
-/* Animations and Responsive Elements */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ============================================
+   MOBILE RESPONSIVE — phones & small tablets
+   ============================================ */
+@media (max-width: 768px) {
+
+  body {
+    overflow: hidden;
+    height: 100dvh; /* dynamic viewport height for mobile browsers */
+  }
+
+  /* ── App wrapper ── */
+  .app-wrapper {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  /* ── Onboarding screen ── */
+  .onboarding-screen {
+    padding: 16px;
+    justify-content: flex-start;
+    padding-top: 40px;
+    overflow-y: auto;
+    height: 100dvh;
+  }
+
+  .onboarding-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px 18px;
+    border-radius: 16px;
+  }
+
+  .onboarding-card h1 {
+    font-size: 22px;
+  }
+
+  /* ── Dashboard grid becomes single-column stack ── */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 56px 1fr auto;
+    gap: 0;
+    max-width: 100%;
+    height: 100dvh;
+  }
+
+  /* Header spans full width */
+  .main-header {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .main-header h2 {
+    font-size: 16px;
+  }
+
+  #user-badge {
+    font-size: 10px;
+  }
+
+  /* ── Center column takes up all space ── */
+  .center-column {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar, center, console become swappable panels ── */
+  .sidebar,
+  .console-panel {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 60px; /* leave room for bottom tab bar */
+    z-index: 200;
+    display: flex !important;
+    flex-direction: column;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--card-border);
+    backdrop-filter: blur(20px);
+  }
+
+  .sidebar.mobile-active,
+  .console-panel.mobile-active {
+    transform: translateX(0);
+  }
+
+  /* Chat area: fills viewport between header and tab bar */
+  .chat-area {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0;
+    border: none;
+    z-index: 100;
+  }
+
+  /* Onion panel is hidden on mobile (inside the chat area block) */
+  .onion-panel {
+    display: none;
+  }
+
+  /* Chat messages scrollable area */
+  .messages-container {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Chat input stays pinned above tab bar */
+  .chat-input-area {
+    padding: 8px 12px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  #input-message {
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+
+  /* Contact items larger touch targets */
+  .contact-item {
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+
+  .contact-item .username {
+    font-size: 15px;
+  }
+
+  /* Sidebar padding adjustment */
+  .sidebar {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .sidebar-section {
+    width: 100%;
+  }
+
+  /* Console panel padding */
+  .console-panel {
+    padding: 0;
+  }
+
+  /* ── Bottom Tab Bar ── */
+  .mobile-tab-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(8, 12, 20, 0.97);
+    border-top: 1px solid var(--card-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+    font-family: var(--font-sans);
+  }
+
+  .tab-btn .tab-icon {
+    font-size: 20px;
+    line-height: 1;
+    transition: transform 0.2s ease;
+  }
+
+  .tab-btn .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .tab-btn.active {
+    color: var(--accent-purple);
+  }
+
+  .tab-btn.active .tab-icon {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 0 6px var(--accent-purple));
+  }
+
+  .tab-btn .tab-badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 18px);
+    width: 8px;
+    height: 8px;
+    background: var(--accent-purple);
+    border-radius: 50%;
+    border: 2px solid var(--bg-color);
+    display: none;
+  }
+
+  .tab-btn.has-badge .tab-badge {
+    display: block;
+  }
+
+  /* Contacts list max-height removed on mobile */
+  .contacts-list {
+    max-height: none;
+  }
+
+  /* Add friend button full width */
+  .secondary-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  /* Input full width */
+  .add-contact-box input {
+    font-size: 14px;
+    padding: 12px;
+  }
+
+  /* Console log font size */
+  .console-log {
+    font-size: 11px;
+  }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Hide tab bar on desktop */
+.mobile-tab-bar {
+  display: none;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .tab-btn .tab-label {
+    font-size: 9px;
+  }
+  .tab-btn .tab-icon {
+    font-size: 18px;
+  }
+  .main-header h2 {
+    font-size: 14px;
+  }
 }

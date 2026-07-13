@@ -1628,3 +1628,64 @@ function renderTutorialStep() {
   nextBtn.textContent = tutorialStep === 4 ? 'Get Started' : 'Next';
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Mobile Tab Navigation
+// ─────────────────────────────────────────────────────────────
+function switchMobileTab(tab) {
+  if (window.innerWidth > 768) return; // only run on mobile
+
+  const sidebar = document.querySelector('.sidebar');
+  const chatArea = document.querySelector('.chat-area');
+  const consolePanel = document.querySelector('.console-panel');
+
+  // Remove all active states first
+  sidebar.classList.remove('mobile-active');
+  consolePanel.classList.remove('mobile-active');
+
+  // Update tab button active state
+  ['contacts', 'chat', 'console'].forEach(t => {
+    const btn = document.getElementById(`tab-btn-${t}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+
+  // Clear unread badge when switching to that tab
+  const badge = document.getElementById(`tab-badge-${tab}`);
+  if (badge) {
+    const btn = document.getElementById(`tab-btn-${tab}`);
+    if (btn) btn.classList.remove('has-badge');
+  }
+
+  if (tab === 'contacts') {
+    sidebar.classList.add('mobile-active');
+  } else if (tab === 'console') {
+    consolePanel.classList.add('mobile-active');
+  }
+  // 'chat' — both panels slide away, chat-area underneath is visible
+}
+
+// Show unread dot on Chat tab when a message arrives while viewing another tab
+function showUnreadTabBadge(tab) {
+  if (window.innerWidth > 768) return;
+  const activeTabBtn = document.querySelector('.tab-btn.active');
+  if (activeTabBtn && activeTabBtn.id === `tab-btn-${tab}`) return; // already on this tab
+  const btn = document.getElementById(`tab-btn-${tab}`);
+  if (btn) btn.classList.add('has-badge');
+}
+
+// Expose globally for HTML onclick and app.js internal use
+window.switchMobileTab = switchMobileTab;
+window.showUnreadTabBadge = showUnreadTabBadge;
+
+// Auto-switch to Chat tab when a contact is selected (mobile)
+document.addEventListener('DOMContentLoaded', () => {
+  const contactsList = document.getElementById('contacts-list');
+  if (contactsList) {
+    contactsList.addEventListener('click', (e) => {
+      const item = e.target.closest('.contact-item');
+      if (item && window.innerWidth <= 768) {
+        switchMobileTab('chat');
+      }
+    });
+  }
+});
+
