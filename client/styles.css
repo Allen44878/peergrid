@@ -271,15 +271,26 @@ textarea {
   display: none; /* Shown dynamically */
   width: 100%;
   height: 100%;
-  grid-template-columns: 280px 1fr 340px;
-  grid-template-rows: 64px 1fr 220px;
-  gap: 16px;
-  max-width: 1400px;
+  grid-template-columns: 250px 1fr 290px;
+  grid-template-rows: 64px 1fr;
+  gap: 12px;
+  max-width: 1600px;
   animation: fadeIn 0.4s ease-out forwards;
 }
 
 .dashboard-grid.active {
   display: grid;
+}
+
+/* Center column: chat stacked above onion map */
+.center-column {
+  grid-column: 2;
+  grid-row: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @keyframes fadeIn {
@@ -338,11 +349,12 @@ textarea {
 
 /* Sidebar styling */
 .sidebar {
-  grid-row: 2 / 4;
-  padding: 20px;
+  grid-column: 1;
+  grid-row: 2 / 3;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   overflow-y: auto;
 }
 
@@ -513,11 +525,13 @@ textarea {
   color: var(--text-secondary);
 }
 
-/* Chat window area */
+/* Chat window area — center dominant, fills available height */
 .chat-area {
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
 }
 
 .chat-header {
@@ -677,13 +691,14 @@ textarea {
   opacity: 0.9;
 }
 
-/* Bottom Panel: Onion routing visualizer */
+/* Onion panel sits at the bottom of center-column, fixed height */
 .onion-panel {
-  grid-column: 1 / 3;
-  padding: 16px 20px;
+  flex-shrink: 0;
+  height: 190px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   overflow: hidden;
 }
 
@@ -766,9 +781,10 @@ textarea {
   margin-right: 6px;
 }
 
-/* Right Panel: Console */
+/* Right Panel: Console — full right column */
 .console-panel {
-  grid-row: 2 / 4;
+  grid-column: 3;
+  grid-row: 2 / 3;
   display: flex;
   flex-direction: column;
   overflow: hidden;
