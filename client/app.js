@@ -563,37 +563,19 @@ async function publishDHTAdvertisement() {
 
 function renderUserBadge() {
   const badgeContainer = document.getElementById('user-badge');
-  if (badgeContainer) {
-    badgeContainer.innerHTML = `
-      <span class="name">${myIdentity.userId}</span>
-      <span class="key-meta">Click to copy Contact Card 📋</span>
-    `;
-    badgeContainer.addEventListener('click', () => {
-      const contactCard = JSON.stringify({
-        userId: myIdentity.userId,
-        identityKey: myIdentity.keys.identityKey.publicKey,
-        dhKey: myIdentity.keys.encryptionKey.publicKey
-      });
-      navigator.clipboard.writeText(contactCard);
-      alert("Contact Card copied to clipboard! Share this with your friend.");
+  badgeContainer.innerHTML = `
+    <span class="name">${myIdentity.userId}</span>
+    <span class="key-meta">Click to copy Contact Card 📋</span>
+  `;
+  badgeContainer.addEventListener('click', () => {
+    const contactCard = JSON.stringify({
+      userId: myIdentity.userId,
+      identityKey: myIdentity.keys.identityKey.publicKey,
+      dhKey: myIdentity.keys.encryptionKey.publicKey
     });
-  }
-
-  // Update WhatsApp Web desktop view components
-  const profileAvatar = document.getElementById('ir-profile-avatar');
-  if (profileAvatar && myIdentity.username) {
-    profileAvatar.textContent = myIdentity.username[0].toUpperCase();
-  }
-  const settingsMyId = document.getElementById('settings-my-id');
-  if (settingsMyId) {
-    settingsMyId.textContent = myIdentity.userId;
-    settingsMyId.style.cursor = 'pointer';
-    settingsMyId.title = 'Click to copy ID';
-    settingsMyId.onclick = () => {
-      navigator.clipboard.writeText(myIdentity.userId);
-      alert('Your User ID has been copied to clipboard!');
-    };
-  }
+    navigator.clipboard.writeText(contactCard);
+    alert("Contact Card copied to clipboard! Share this with your friend.");
+  });
 }
 
 // Virtual Mesh Network (BroadcastChannel) fallback
@@ -732,34 +714,19 @@ async function initDoubleRatchetSession(contactId) {
 
 function renderContacts() {
   const container = document.getElementById('contacts-list');
-  if (!container) return;
   container.innerHTML = "";
   const entries = Object.values(contacts);
   if (entries.length === 0) {
     container.innerHTML = `<p class="empty-state">No contacts added yet</p>`;
     return;
   }
-  entries.forEach((c, idx) => {
-    const initial = (c.username || '?')[0].toUpperCase();
-    const colorClass = AVATAR_COLORS[idx % AVATAR_COLORS.length];
-    const preview = c.lastMessage || '🔒 Encrypted session active';
-    const time = c.lastTime || '';
-    const unread = c.unread || 0;
-
+  entries.forEach(c => {
     const div = document.createElement('div');
     div.className = `contact-item ${activeContactId === c.userId ? 'active' : ''}`;
-    div.dataset.userId = c.userId;
     div.innerHTML = `
-      <div class="mob-chat-item-avatar ${colorClass}">${initial}</div>
-      <div class="mob-chat-item-body" style="margin-left: 10px; flex: 1; min-width: 0;">
-        <div class="mob-chat-item-top" style="display: flex; justify-content: space-between; align-items: baseline;">
-          <span class="mob-chat-item-name" style="font-weight: 600;">${c.username}</span>
-          <span class="mob-chat-item-time ${unread > 0 ? 'unread' : ''}" style="font-size: 11px;">${time}</span>
-        </div>
-        <div class="mob-chat-item-bottom" style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
-          <span class="mob-chat-item-preview" style="font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">${preview}</span>
-          ${unread > 0 ? `<span class="mob-unread-badge" style="margin-left: auto;">${unread}</span>` : ''}
-        </div>
+      <div>
+        <p class="username">${c.username}</p>
+        <p class="id-sub">${c.userId}</p>
       </div>
     `;
     div.addEventListener('click', () => selectContact(c.userId));
@@ -775,35 +742,26 @@ function selectContact(contactId) {
   const header = document.getElementById('active-chat-header');
   if (contact.isGroup) {
     header.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <div class="mob-chat-avatar mob-avatar-0" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">G</div>
-        <div>
-          <p class="title-name" style="font-weight:600; font-size:16px; margin:0;">${contact.username}</p>
-          <p class="title-id" style="font-size:12px; color:var(--text-secondary); margin:2px 0 0 0;">${contact.userId} • Epoch: ${contact.epoch}</p>
-        </div>
+      <div>
+        <p class="title-name">${contact.username}</p>
+        <p class="title-id">${contact.userId} • Group Epoch: ${contact.epoch}</p>
       </div>
       <div class="chat-header-meta" style="display: flex; gap: 8px; align-items: center;">
-        <button id="btn-group-rotate" class="tiny-btn" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">Evict Member</button>
+        <button id="btn-group-rotate" class="tiny-btn" style="padding: 2px 6px; font-size: 10px; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; cursor: pointer;">Evict Member</button>
         <span>Members: ${contact.members.length}</span>
       </div>
     `;
     document.getElementById('btn-group-rotate').addEventListener('click', () => rotateGroupKey(contact.userId));
   } else {
-    const initial = (contact.username || '?')[0].toUpperCase();
-    const idx = Object.keys(contacts).indexOf(contactId);
-    const colorClass = AVATAR_COLORS[idx % AVATAR_COLORS.length];
-    
     header.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <div class="mob-chat-avatar ${colorClass}" style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">${initial}</div>
-        <div>
-          <p class="title-name" style="font-weight:600; font-size:16px; margin:0;">${contact.username}</p>
-          <p class="title-id" style="font-size:12px; color:var(--text-secondary); margin:2px 0 0 0;">${contact.userId}</p>
-        </div>
+      <div>
+        <p class="title-name">${contact.username}</p>
+        <p class="title-id">${contact.userId}</p>
       </div>
       <div class="chat-header-meta" style="display: flex; gap: 8px; align-items: center;">
-        <button id="btn-call-voice" class="tiny-btn" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--accent-blue); border-radius: 4px; cursor: pointer;">📞 Call</button>
-        <span>Sequence: ${contact.session ? contact.session.sequenceNumberSend : 0}</span>
+        <button id="btn-call-voice" class="tiny-btn" style="padding: 2px 6px; font-size: 10px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--accent-blue); border-radius: 4px; cursor: pointer;">📞 Call</button>
+        <span>Ratchet Seq: ${contact.session ? contact.session.sequenceNumberSend : 0}</span>
+        <span>Capability: Direct Message, Files</span>
       </div>
     `;
   }
@@ -813,7 +771,6 @@ function selectContact(contactId) {
   const sendBtn = document.getElementById('btn-send-message');
   const attachBtn = document.getElementById('btn-attach-file');
   msgInput.disabled = false;
-  msgInput.focus();
   sendBtn.disabled = false;
   attachBtn.disabled = contact.isGroup ? true : false;
   
@@ -1240,7 +1197,7 @@ function renderMessages() {
       <p class="text">${escapeHtml(m.text)}</p>
       <div class="message-meta">
         <span>${timeStr}</span>
-        ${isMe ? '<span style="color:#00a884; font-weight:bold; margin-left:4px;">✓✓</span>' : ''}
+        <span>${isMe ? 'Sent (Onion)' : 'E2E Verified'}</span>
       </div>
     `;
     container.appendChild(bubble);
@@ -1750,82 +1707,7 @@ window.addEventListener('resize', applyLayout);
 document.addEventListener('DOMContentLoaded', () => {
   applyLayout();
   setupMobileApp();
-  setupDesktopRail();
 });
-
-function setupDesktopRail() {
-  const btnChats = document.getElementById('ir-btn-chats');
-  const btnNetwork = document.getElementById('ir-btn-network');
-  const btnSettings = document.getElementById('ir-btn-settings');
-  
-  const consolePanel = document.getElementById('console-panel-wrap');
-  const settingsPanel = document.getElementById('settings-panel-wrap');
-  
-  function deactivateRailButtons() {
-    [btnChats, btnNetwork, btnSettings].forEach(btn => {
-      if (btn) btn.classList.remove('ir-active');
-    });
-  }
-  
-  if (btnChats) {
-    btnChats.addEventListener('click', () => {
-      deactivateRailButtons();
-      btnChats.classList.add('ir-active');
-      if (consolePanel) consolePanel.style.display = 'none';
-      if (settingsPanel) settingsPanel.style.display = 'none';
-    });
-  }
-  
-  if (btnNetwork) {
-    btnNetwork.addEventListener('click', () => {
-      deactivateRailButtons();
-      btnNetwork.classList.add('ir-active');
-      if (consolePanel) consolePanel.style.display = 'flex';
-      if (settingsPanel) settingsPanel.style.display = 'none';
-      
-      const consoleOutput = document.getElementById('console-output');
-      if (consoleOutput) consoleOutput.scrollTop = consoleOutput.scrollHeight;
-    });
-  }
-  
-  if (btnSettings) {
-    btnSettings.addEventListener('click', () => {
-      deactivateRailButtons();
-      btnSettings.classList.add('ir-active');
-      if (consolePanel) consolePanel.style.display = 'none';
-      if (settingsPanel) settingsPanel.style.display = 'flex';
-    });
-  }
-  
-  // Add contact panel triggers
-  const btnShowAdd = document.getElementById('btn-show-add-contact-desktop');
-  const slAddPanel = document.getElementById('sl-add-contact-panel');
-  const slBack = document.getElementById('sl-back-btn');
-  
-  if (btnShowAdd && slAddPanel) {
-    btnShowAdd.addEventListener('click', () => {
-      slAddPanel.style.display = 'flex';
-    });
-  }
-  if (slBack && slAddPanel) {
-    slBack.addEventListener('click', () => {
-      slAddPanel.style.display = 'none';
-    });
-  }
-  
-  // Search filter
-  const searchInput = document.getElementById('desktop-search-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase();
-      document.querySelectorAll('.contact-item').forEach(item => {
-        const name = item.querySelector('.mob-chat-item-name')?.textContent.toLowerCase() || '';
-        item.style.display = name.includes(q) ? 'flex' : 'none';
-      });
-    });
-  }
-}
-
 
 // ── Render chat list ──────────────────────────────────────────
 function mobRenderChatList() {
