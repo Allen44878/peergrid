@@ -103,6 +103,12 @@ window.addEventListener('DOMContentLoaded', async () => {
       const epKeyPair = self.nacl.box.keyPair.fromSecretKey(epSecret);
       const shared = self.nacl.scalarMult(epKeyPair.secretKey, relayKeyPair.publicKey);
       logConsole("system", `[Diagnostic] Shared JS: ${toHex(shared)}`);
+
+      // Derive HKDF key
+      const info = new TextEncoder().encode("DCP_ONION_ROUTING_HOP");
+      const aesKey = await DCPCrypto.hkdf(shared, null, info);
+      const exported = await crypto.subtle.exportKey("raw", aesKey);
+      logConsole("system", `[Diagnostic] HKDF JS: ${toHex(new Uint8Array(exported))}`);
     } catch(e) {
       logConsole("system", `[Diagnostic] Error: ${e.message}`);
     }
