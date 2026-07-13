@@ -270,17 +270,20 @@ export class DoubleRatchetSession {
     const derivedBits = await crypto.subtle.deriveBits(
       { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: info },
       saltKey,
-      512
+      768
     );
     const derived = new Uint8Array(derivedBits);
     session.rootKey = await crypto.subtle.importKey("raw", derived.slice(0, 32), "HKDF", false, ["deriveBits", "deriveKey"]);
     
+    const chainKeyA = derived.slice(32, 64);
+    const chainKeyB = derived.slice(64, 96);
+    
     if (isInitiator) {
-      session.sendingChainKey = derived.slice(32, 64);
-      session.receivingChainKey = null;
+      session.sendingChainKey = chainKeyA;
+      session.receivingChainKey = chainKeyB;
     } else {
-      session.sendingChainKey = null;
-      session.receivingChainKey = derived.slice(32, 64);
+      session.sendingChainKey = chainKeyB;
+      session.receivingChainKey = chainKeyA;
     }
     return session;
   }
