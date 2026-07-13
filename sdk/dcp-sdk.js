@@ -430,7 +430,9 @@ export class DCPPacket {
     if (bytes.length < 118) {
       throw new Error("Packet is too short to parse header");
     }
-    const view = new DataView(arrayBuffer);
+    const view = arrayBuffer instanceof ArrayBuffer 
+      ? new DataView(arrayBuffer) 
+      : new DataView(arrayBuffer.buffer, arrayBuffer.byteOffset, arrayBuffer.byteLength);
     if (bytes[0] !== 0x44 || bytes[1] !== 0x43 || bytes[2] !== 0x50 || bytes[3] !== 0x01) {
       throw new Error("Invalid Magic Bytes: Not a DCP Packet");
     }
