@@ -1017,6 +1017,8 @@ Packet Hex Dump:\n${formatHexDump(binaryPacket)}`);
     contact.userId
   );
 
+  logConsole("send", `[Onion Envelope Hex]: ${toHex(onionEnvelope)}`);
+
   metrics.sent++;
   document.getElementById('metric-sent').textContent = metrics.sent;
 
