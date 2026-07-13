@@ -690,7 +690,19 @@ document.getElementById('btn-add-contact').addEventListener('click', async () =>
       card = { userId: contactInput, username: parsed.username, identityKey: "", dhKey: "" };
     }
     
-    if (contacts[card.userId]) return alert("Contact already exists");
+    if (contacts[card.userId]) {
+      if (card.dhKey) {
+        contacts[card.userId].dhKey = card.dhKey;
+        contacts[card.userId].identityKey = card.identityKey;
+        await initDoubleRatchetSession(card.userId);
+        saveState();
+        renderContacts();
+        document.getElementById('input-contact-id').value = "";
+        alert("E2EE keys updated for " + contacts[card.userId].username + "! You can now chat.");
+        return;
+      }
+      return alert("Contact already exists");
+    }
     
     contacts[card.userId] = {
       username: card.username || DCPIdentity.parseUserId(card.userId).username,
