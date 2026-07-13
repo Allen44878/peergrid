@@ -93,6 +93,20 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Try restoring saved session
   await tryAutoLogin();
+
+  // Diagnostic test
+  (async () => {
+    try {
+      const seedA = new Uint8Array(32).fill(1);
+      const epSecret = new Uint8Array(32).fill(5);
+      const relayKeyPair = self.nacl.box.keyPair.fromSecretKey(seedA);
+      const epKeyPair = self.nacl.box.keyPair.fromSecretKey(epSecret);
+      const shared = self.nacl.scalarMult(epKeyPair.secretKey, relayKeyPair.publicKey);
+      logConsole("system", `[Diagnostic] Shared JS: ${toHex(shared)}`);
+    } catch(e) {
+      logConsole("system", `[Diagnostic] Error: ${e.message}`);
+    }
+  })();
 });
 
 // Onboarding & Tab management
