@@ -317,7 +317,7 @@ export class DoubleRatchetSession {
       
       const entropy = new Uint8Array(32);
       window.crypto.getRandomValues(entropy);
-      const newKeyPair = self.nacl.box.keyPair.fromSeed(entropy);
+      const newKeyPair = self.nacl.box.keyPair.fromSecretKey(entropy);
       this.ourDHKey = {
         publicKey: toHex(newKeyPair.publicKey),
         privateKey: toHex(newKeyPair.secretKey)
@@ -572,7 +572,7 @@ export class DCPTransport {
       const nextHop = i === relayPathKeys.length - 1 ? finalRecipientId : relayPathKeys[i + 1];
       const entropy = new Uint8Array(32);
       window.crypto.getRandomValues(entropy);
-      const epKeyPair = self.nacl.box.keyPair.fromSeed(entropy);
+      const epKeyPair = self.nacl.box.keyPair.fromSecretKey(entropy);
       const sharedSecret = DCPCrypto.deriveX25519SharedSecret(toHex(epKeyPair.secretKey), relayKey);
       const info = new TextEncoder().encode("DCP_ONION_ROUTING_HOP");
       const aesKey = await DCPCrypto.hkdf(sharedSecret, null, info);
